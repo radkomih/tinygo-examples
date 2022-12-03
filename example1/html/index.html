@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<title>Go Wasm</title>
+	</head>
+
+	<body>
+		<script src="wasm_exec.js"></script>
+		
+		<script>
+			'use strict';
+
+			const WASM_URL = 'wasm.wasm';
+
+			function run() {	
+				const go = new Go();
+
+				let mod, inst;
+
+				if ('instantiateStreaming' in WebAssembly) {
+					WebAssembly.instantiateStreaming(fetch(WASM_URL), go.importObject)
+					.then(async function (obj) {
+						mod = obj.module;
+						inst = obj.instance;
+						go.run(inst);
+						let res = await inst.exports.read_buffer(1);
+						console.log(res);
+					}).catch((err) => {
+						console.error(err);
+					});
+				} else {
+					fetch(WASM_URL)
+					.then(function (resp) { resp.arrayBuffer() })
+					.then(bytes =>
+						WebAssembly.instantiate(bytes, go.importObject)
+						.then(async function (obj) {
+							inst = obj.instance;
+							go.run(inst);
+							let res = await inst.exports.read_buffer(1);
+							console.log(res);
+						})
+					)
+				}
+			}
+		</script>
+
+		<button onClick="run();" id="runButton">Run</button>
+	</body>
+</html>
